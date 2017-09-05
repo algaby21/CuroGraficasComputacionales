@@ -1,3 +1,7 @@
+//GABRIELA AGUILAR LUGO A01373890
+//GRAFICAS COMPUTACIONALES
+//PRIMER PARCIAL
+
 #include "InputFile.h"
 #include <fstream>
 #include <iostream>
