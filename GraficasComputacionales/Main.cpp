@@ -1,26 +1,30 @@
-//GABRIELA AGUILAR LUGO A01373890
-//GRAFICAS COMPUTACIONALES
-//PRIMER PARCIAL
-
-
+/*
+*	Autor1: Alonso Issac Morales Gutiérrez	A01371668
+*	Autor2: Gabriela Aguilar Lugo			A01373890
+*	Gráficas Computacionales
+*	Prof. Oriam De Gyves
+*	Main.cpp
+*/
 
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <iostream>
 #include <glm/glm.hpp>
 #include <vector>
-#include "InputFile.h"
-#include <cmath> 
-#include <cstdlib>
-#include <GL/glut.h>
+#include "Mesh.h"
+#include "ShaderProgram.h"
+#include "Transform.h"
+#include "Camera.h"
 
+Mesh _mesh;
+ShaderProgram _shaderProgram;
+Camera _camera;
 
+Transform _transform;
+Transform _transformDos;
 
-// Identificador del manager al que vamos a asociar todos los VBOs
-GLuint vao;
-
-// Identifcador del manager de los shaders (shaderProgram)
-GLuint shaderProgram;
+float _ang = 0.0f;
+int validador = 1.0f;
 
 void Initialize()
 {
@@ -29,113 +33,42 @@ void Initialize()
 	// Creación del atributo de posiciones de los vértices.
 	// Lista de vec2
 	// Claramente en el CPU y RAM
-
-	float i;
-
-	std::vector<glm::vec2> positions;
-	positions.push_back(glm::vec2(0, 0));
-	std::vector<glm::vec3> colors;
-	colors.push_back(glm::vec3(1.0f, 0.0f, 1.0f));
-
-	for (i = 0; i <= 362; i++) {
-		positions.push_back(glm::vec2(glm::cos(glm::radians(i)),
-			glm::sin(glm::radians(i))));
-		colors.push_back(glm::vec3(glm::cos(glm::radians(i)),
-			glm::sin(glm::radians(i)), 0.0f));
-	}
-
-	//std::vector<glm::vec2> positions;
-	//positions.push_back(glm::vec2(-1.0f, -1.0f));
-	//positions.push_back(glm::vec2(1.0f, -1.0f));
-	//positions.push_back(glm::vec2(0.0f, 1.0f));
+	std::vector<glm::vec3> positions;
+	positions.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+	positions.push_back(glm::vec3(1.0f, -2.0f, 1.0f));
+	positions.push_back(glm::vec3(1.0f, -2.0f, -1.0f));
+	positions.push_back(glm::vec3(-1.0f, -2.0f, 1.0f));
+	positions.push_back(glm::vec3(-1.0f, -2.0f, -1.0f));
 
 	// Arreglo de colores en el cpu
-	//std::vector<glm::vec3> colors;
-	//colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
-	//colors.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
-	//colors.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
+	std::vector<glm::vec3> colors;
+	colors.push_back(glm::vec3(1.0f, 1.0f, 0.0f));
+	colors.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
+	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	colors.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
+	colors.push_back(glm::vec3(0.0f, 1.0f, 1.0f));
 
-	// Queremos generar 1 manager
-	glGenVertexArrays(1, &vao);
-	// Utilizar el vao. A partir de este momento, todos VBOs creados y configurados
-	// se van a asociar a este manager.
-	glBindVertexArray(vao);
+	std::vector<unsigned int> indices = { 0, 1, 2, 0, 2, 4, 0, 4, 3, 0, 3, 1, 4, 2, 1, 4, 1, 3 };
 
-	// Identificador del VBO de posiciones.
-	GLuint positionsVBO;
-	// Creación del VBO de posiciones
-	glGenBuffers(1, &positionsVBO);
-	// Activamos el buffer de posiciones para poder utilizarlo
-	glBindBuffer(GL_ARRAY_BUFFER, positionsVBO);
-	// Creamos la memoria y la inicializamos con los datos del atributo de posiciones
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * positions.size(),
-		positions.data(), GL_STATIC_DRAW);
-	// Activamos el atributo en la tarjeta de video
-	glEnableVertexAttribArray(0);
-	// Configuramos los datos del atributo en la tarjeta de video
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-	// Ya no vamos a utilizar este VBO en este momento.
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	_mesh.CreateMesh(positions.size());
+	_mesh.SetPositionAttribute(positions, GL_STATIC_DRAW, 0);
+	_mesh.SetColorAttribute(colors, GL_STATIC_DRAW, 1);
+	_mesh.SetIndices(indices, GL_STATIC_DRAW);
 
-	GLuint colorsVBO;
-	glGenBuffers(1, &colorsVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, colorsVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * colors.size(),
-		colors.data(), GL_STATIC_DRAW);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	_shaderProgram.CreateProgram();
+	_shaderProgram.AttachShader("Default.vert", GL_VERTEX_SHADER);
+	_shaderProgram.AttachShader("Default.frag", GL_FRAGMENT_SHADER);
+	_shaderProgram.SetAttribute(0, "VertexPosition");
+	_shaderProgram.SetAttribute(1, "VertexColor");
+	_shaderProgram.LinkProgram();
 
-	// Desactivamos el manager
-	glBindVertexArray(0);
+	_camera.SetPosition(0.0f, 0.0f, 25.0f);
 
-	// Creamos un objeto para leer archivos de texto
-	InputFile ifile;
+	_transform.SetPosition(5.0f * glm::cos(glm::radians((float)0)), 5.0f * glm::sin(glm::radians((float)0)), 0.0f);
+	_transform.SetScale(3.0f, 3.0f, 3.0f);
 
-	// VERTEX SHADER
-	// Leemos el archivo Default.vert donde está
-	// el código del vertex shader.
-	//ifile.Read("Default.vert");
-	ifile.Read("DiscardCenter.vert");
-	// Obtenemos el código fuente y lo guardamos
-	// en un string
-	std::string vertexSource = ifile.GetContents();
-	// Creamos un shader de tipo vertex
-	// guardamos su identificador en una variable.
-	GLuint vertexShaderHandle =
-		glCreateShader(GL_VERTEX_SHADER);
-	// Obtener los datos en el formato correcto
-	const GLchar *vertexSource_c =
-		(const GLchar*)vertexSource.c_str();
-	// Le estamos dando el código fuente a OpenGL
-	// para que se lo asigne al shader
-	glShaderSource(vertexShaderHandle, 1,
-		&vertexSource_c, nullptr);
-	// Compilamos el shader en busca de errores.
-	// Vamos a asumir que no hay ningún error.
-	glCompileShader(vertexShaderHandle);
-
-	//ifile.Read("Default.frag");
-	ifile.Read("DiscardCenter.frag");
-	std::string fragmentSource = ifile.GetContents();
-	GLuint fragmentShaderHandle = glCreateShader(GL_FRAGMENT_SHADER);
-	const GLchar *fragmentSource_c = (const GLchar*)fragmentSource.c_str();
-	glShaderSource(fragmentShaderHandle, 1, &fragmentSource_c, nullptr);
-	glCompileShader(fragmentShaderHandle);
-
-	// Creamos el identificador para el manager de los shaders
-	shaderProgram = glCreateProgram();
-	// Adjuntamos el vertex shader al manager (van a trabajar juntos)
-	glAttachShader(shaderProgram, vertexShaderHandle);
-	// Adjuntamos el fragment shader al manager (van a trabajar juntos)
-	glAttachShader(shaderProgram, fragmentShaderHandle);
-	// Asociamos un buffer con indice 0 (posiciones) a la variable VertexPosition
-	glBindAttribLocation(shaderProgram, 0, "VertexPosition");
-	// Asociamos un buffer con indice 1 (colores) a la variable VertexColor
-	glBindAttribLocation(shaderProgram, 1, "VertexColor");
-	// Ejecutamos el proceso de linker (asegurarnos que el vertex y fragment son
-	// compatibles)
-	glLinkProgram(shaderProgram);
+	_transformDos.SetPosition(0.0f, 0.0f, 0.0f);
+	_transformDos.SetScale(0.5f, 0.5f, 0.5f);
 }
 
 void GameLoop()
@@ -144,23 +77,60 @@ void GameLoop()
 	// Siempre hacerlo al inicio del frame
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	//Primer pirámide (geometría 1)
+	_transform.Rotate(0.01f, 0.01f, 0.01f, false);
+	_transform.SetPosition(5.0f * glm::cos(glm::radians((float)_ang)), 5.0f * glm::sin(glm::radians((float)_ang)), 0.0f);
+	_ang += 0.01f;
+	if (_ang > 360.0f) {
+		_ang = 0.0f;
+	}
 
-	// Activamos el vertex shader y el fragment shader utilizando el manager
-	glUseProgram(shaderProgram);
-	// Activamos el manager, en este momento se activan todos los
-	// VBOs asociados automáticamente.
-	glBindVertexArray(vao);
-	// Función de dibujado sin indices.
-	// se incrementa dos angulos mas porque con 361 queda un grado vacio, entocnes 361+1 
-	glDrawArrays(GL_TRIANGLE_FAN, 0, 362);
+	//Segunda pirámide (geometría 2)
+	_transformDos.Rotate(-0.01f, -0.01f, -0.01f, false);
+	if (validador == 1) {
+		if (_transformDos.GetScale().x >= 1.0f) {
+			validador = 0;
+		}
+		_transformDos.SetScale(_transformDos.GetScale().x + 0.0001f,
+			_transformDos.GetScale().y + 0.0001f,
+			_transformDos.GetScale().z + 0.0001f);
+	}
+	else {
+		if (_transformDos.GetScale().x <= 0.25f) {
+			validador = 1;
+		}
+		_transformDos.SetScale(_transformDos.GetScale().x - 0.0001f,
+			_transformDos.GetScale().y - 0.0001f,
+			_transformDos.GetScale().z - 0.0001f);
+	}
 
-	// Terminamos de utilizar el manager
-	glBindVertexArray(0);
-	// Desactivamos el manager
-	glUseProgram(0);
+
+	_shaderProgram.Activate();
+	_shaderProgram.SetUniformMatrix("mvpMatrix", _camera.GetViewProjection() * _transform.GetModelMatrix());
+	_mesh.Draw(GL_TRIANGLES);
+	_shaderProgram.Deactivate();
+
+	_shaderProgram.Activate();
+	_shaderProgram.SetUniformMatrix("mvpMatrix", _camera.GetViewProjection() * _transformDos.GetModelMatrix());
+	_mesh.Draw(GL_TRIANGLES);
+	_shaderProgram.Deactivate();
 
 	// Cuando terminamos de renderear, cambiamos los buffers.
 	glutSwapBuffers();
+}
+
+void Idle()
+{
+	// Cuando OpenGL entra en modo de reposo 
+	// (para guardar bateria, por ejemplo)
+	// le decimos que vuelva a dibujar ->
+	// Vuelve a mandar a llamar GameLoop
+	glutPostRedisplay();
+}
+
+void ReshapeWindow(int width, int height)
+{
+	glViewport(0, 0, width, height);
 }
 
 int main(int argc, char* argv[])
@@ -170,7 +140,7 @@ int main(int argc, char* argv[])
 	// en donde podemos dibujar
 	glutInit(&argc, argv);
 	// Solicitando una versión específica de OpenGL.
-	//glutInitContextVersion(4, 4);
+	glutInitContextVersion(4, 0);
 	// Iniciar el contexto de OpenGL. El contexto se refiere
 	// a las capacidades que va a tener nuestra aplicación
 	// gráfica.
@@ -186,9 +156,17 @@ int main(int argc, char* argv[])
 	// Iniciar las dimensiones de la ventana (en pixeles)
 	glutInitWindowSize(400, 400);
 	// Creamos la ventana y le damos un título.
-	glutCreateWindow("Hello World GL");
-	// Asociamos una función de render. Esta función se mandará a llamar para dibujar un frame.
+	glutCreateWindow("Examen Práctico 2o Parcial");
+	// Asociamos una función de render.
+	//Esta función se mandará a llamar para dibujar un frame.
 	glutDisplayFunc(GameLoop);
+	// Asociamos una función para el cambio de resolución
+	// de la ventana. Freeglut la va a mandar a llamar
+	// cuando alguien cambie el tamaño de la venta.
+	glutReshapeFunc(ReshapeWindow);
+	// Asociamos la función que se mandará a llamar
+	// cuando OpenGL entre en modo de reposo.
+	glutIdleFunc(Idle);
 
 	// Inicializar GLEW. Esta librería se encarga de obtener el API de OpenGL de
 	// nuestra tarjeta de video. SHAME ON YOU MICROSOFT.
@@ -196,7 +174,15 @@ int main(int argc, char* argv[])
 
 	// Configurar OpenGL. Este es el color por default del buffer de color
 	// en el framebuffer.
-	glClearColor(1.0f, 1.0f, 0.5f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	// Ademas de solicitar el buffer de profundidad, tenemos
+	// que decirle a OpenGL que lo queremos activo
+	glEnable(GL_DEPTH_TEST);
+	// Activamos el borrado de caras traseras.
+	// Ahora todos los triangulos que dibujemos deben estar en CCW
+	glEnable(GL_CULL_FACE);
+	// No dibujar las caras traseras de las geometrías.
+	glCullFace(GL_BACK);
 
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
