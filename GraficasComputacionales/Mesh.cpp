@@ -12,8 +12,8 @@ Mesh::Mesh()
 	_vertexArrayObject = 0;
 	_positionsVertexBufferObject = 0;
 	_colorsVertexBufferObject = 0;
-	_indice = 0; //_indicesCount=0;
-	_indicesBuffer = 0; // _indicesbufferobject=0;
+	_indice = 0; 
+	_indicesBuffer = 0; 
 }
 
 Mesh::~Mesh()
